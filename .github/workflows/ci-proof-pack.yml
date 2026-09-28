@@ -1,5 +1,9 @@
 name: ci-proof-pack
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -75,50 +79,50 @@ jobs:
           done < scan_files.txt
 
           python3 - << 'PY'
-import json, os, datetime
-repo=os.environ.get("GITHUB_REPOSITORY","")
-branch=os.environ.get("GITHUB_HEAD_REF","") or os.environ.get("GITHUB_REF_NAME","")
-sha=os.environ.get("GITHUB_SHA","")
-ts=datetime.datetime.utcnow().replace(microsecond=0).isoformat()+"Z"
+          import json, os, datetime
+          repo=os.environ.get("GITHUB_REPOSITORY","")
+          branch=os.environ.get("GITHUB_HEAD_REF","") or os.environ.get("GITHUB_REF_NAME","")
+          sha=os.environ.get("GITHUB_SHA","")
+          ts=datetime.datetime.utcnow().replace(microsecond=0).isoformat()+"Z"
 
-tokens=["fetch(","httpGet(","queryFn","useQuery","supabase","adapter","endpoint","VITE_API_BASE_URL"]
+          tokens=["fetch(","httpGet(","queryFn","useQuery","supabase","adapter","endpoint","VITE_API_BASE_URL"]
 
-changed=[]
-with open("changed_files.txt","r",encoding="utf-8") as f:
-  changed=[ln.strip() for ln in f if ln.strip()]
+          changed=[]
+          with open("changed_files.txt","r",encoding="utf-8") as f:
+            changed=[ln.strip() for ln in f if ln.strip()]
 
-scan={}
-if os.path.exists("scan.tsv"):
-  with open("scan.tsv","r",encoding="utf-8") as f:
-    for ln in f:
-      parts=ln.rstrip("\n").split("\t")
-      if len(parts)!=3: continue
-      file, tok, hit = parts
-      scan.setdefault(file, {})[tok] = (hit=="YES")
+          scan={}
+          if os.path.exists("scan.tsv"):
+            with open("scan.tsv","r",encoding="utf-8") as f:
+              for ln in f:
+                parts=ln.rstrip("\n").split("\t")
+                if len(parts)!=3: continue
+                file, tok, hit = parts
+                scan.setdefault(file, {})[tok] = (hit=="YES")
 
-obj={
-  "metadata":{
-    "repo":repo,
-    "branch":branch,
-    "commit_sha":sha,
-    "timestamp_utc":ts
-  },
-  "scope_proof":{
-    "diff_name_only":changed
-  },
-  "forbidden_scan":{
-    "tokens":tokens,
-    "per_file":scan,
-    "zero_hit_assertion": all(not any(v.values()) for v in scan.values()) if scan else True
-  },
-  "fe_build_proof":{
-    "typecheck_exit_code": null,
-    "build_exit_code": null
-  }
-}
-with open("ci_proof.json","w",encoding="utf-8") as out:
-  json.dump(obj,out,indent=2,sort_keys=True)
-PY
+          obj={
+            "metadata":{
+              "repo":repo,
+              "branch":branch,
+              "commit_sha":sha,
+              "timestamp_utc":ts
+            },
+            "scope_proof":{
+              "diff_name_only":changed
+            },
+            "forbidden_scan":{
+              "tokens":tokens,
+              "per_file":scan,
+              "zero_hit_assertion": all(not any(v.values()) for v in scan.values()) if scan else True
+            },
+            "fe_build_proof":{
+              "typecheck_exit_code": null,
+              "build_exit_code": null
+            }
+          }
+          with open("ci_proof.json","w",encoding="utf-8") as out:
+            json.dump(obj,out,indent=2,sort_keys=True)
+          PY
 
           set +e
           npm ci
@@ -129,13 +133,13 @@ PY
           set -e
 
           python3 - << PY
-import json
-p="ci_proof.json"
-with open(p,"r",encoding="utf-8") as f: obj=json.load(f)
-obj["fe_build_proof"]["typecheck_exit_code"]=${TYPECHECK_CODE}
-obj["fe_build_proof"]["build_exit_code"]=${BUILD_CODE}
-with open(p,"w",encoding="utf-8") as f: json.dump(obj,f,indent=2,sort_keys=True)
-PY
+          import json
+          p="ci_proof.json"
+          with open(p,"r",encoding="utf-8") as f: obj=json.load(f)
+          obj["fe_build_proof"]["typecheck_exit_code"]=${TYPECHECK_CODE}
+          obj["fe_build_proof"]["build_exit_code"]=${BUILD_CODE}
+          with open(p,"w",encoding="utf-8") as f: json.dump(obj,f,indent=2,sort_keys=True)
+          PY
 
           echo "" >> ci_proof.txt
           echo "=== FE build proof ===" >> ci_proof.txt
