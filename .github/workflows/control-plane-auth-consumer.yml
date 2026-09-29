@@ -1,0 +1,24 @@
+name: Control Plane auth consumer proof
+
+on:
+  pull_request:
+    paths:
+      - "src/features/control-plane-auth/controlPlaneAuthConsumer.ts"
+      - "src/features/control-plane-auth/controlPlaneAuthConsumerProof.ts"
+      - "docs/CONTROL_PLANE_AUTH_CONSUMER_STUB.md"
+      - ".github/workflows/control-plane-auth-consumer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  control-plane-auth-consumer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx --no-install tsx src/features/control-plane-auth/controlPlaneAuthConsumerProof.ts
