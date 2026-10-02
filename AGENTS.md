@@ -46,3 +46,7 @@
 - Keep required checks and release/deployment proof intact. Cancel superseded pull request jobs by workflow and PR number; never cancel a main-branch or deployment run. Do not run the same expensive suite on both the feature push and its PR without a specific reason.
 - Set bounded job timeouts, reuse setup where practical, avoid duplicate matrices and browser downloads, and run expensive checks only when their proof is needed. No production/vendor sync cadence change without documenting data freshness and recovery consequences.
 - Review the Actions usage report by repository and workflow monthly. Investigate unusual growth before increasing CI fan-out. A budget-blocked or skipped job is not a passing check.
+
+## Supabase architecture and data access
+
+Before changing database schema, data access, assumption resolution or cache behavior, read [the shared architecture standard](docs/database/ALTUS_SUPABASE_ARCHITECTURE.md) and [this app's architecture record](docs/database/DATABASE_ARCHITECTURE.md). Review existing entities and relationships before adding persistence. Update the affected architecture record and decisions in the same PR. Mark source-only and live-verified evidence separately. Apply this to database-backed work; it does not require adding Supabase to an app without it. This rule does not authorize live migrations or deployment.
